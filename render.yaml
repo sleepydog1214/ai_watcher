@@ -6,12 +6,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     healthCheckPath: /api/health
-    disks:
-      - name: ai-watch-data
-        mountPath: /var/data
-        sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
       - key: AI_WATCH_DB_PATH
-        value: /var/data/db.json
+        value: data/db.json

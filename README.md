@@ -20,7 +20,7 @@ App URL: `http://localhost:5000`
 1. Push this repository to GitHub.
 2. In Render, click **New +** -> **Blueprint**.
 3. Select your repo and create the service.
-4. Render reads `render.yaml`, provisions a disk at `/var/data`, and deploys automatically.
+4. Render reads `render.yaml` and deploys automatically on the free plan using ephemeral storage.
 
 ### Option B: Manual Web Service setup
 
@@ -31,17 +31,18 @@ App URL: `http://localhost:5000`
    - Start Command: `gunicorn --bind 0.0.0.0:$PORT app:app`
    - Health Check Path: `/api/health`
 3. Add environment variable:
-   - `AI_WATCH_DB_PATH=/var/data/db.json`
-4. Add a persistent disk and mount it at `/var/data`.
+   - `AI_WATCH_DB_PATH=data/db.json`
+4. (Optional) add a persistent disk and set `AI_WATCH_DB_PATH=/var/data/db.json`.
 5. Deploy.
 
 ### Keep data between deploys/restarts (recommended)
 
-Render instances use ephemeral filesystem by default. This project is configured to persist app data:
+Render instances use ephemeral filesystem by default. To persist app data instead:
 
 1. Add a persistent disk in Render and mount it at `/var/data`.
 2. Set `AI_WATCH_DB_PATH=/var/data/db.json`.
 3. Redeploy.
+4. Use a paid plan (`starter` or higher), since persistent disks are not available on `free`.
 
 ## Notes
 
