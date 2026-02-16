@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
 from ai_watch.validation import ALLOWED_CATEGORIES, ALLOWED_STATUSES, ValidationError
@@ -22,6 +24,58 @@ def _parse_float(raw_value: str) -> float:
         return float(raw_value)
     except ValueError as exc:
         raise ValidationError("Expected a numeric value.") from exc
+
+
+def _view_data(db, category_filter: str | None = None, status_filter: str | None = None) -> dict:
+    config = db.get_config()
+    summary = db.dashboard_summary()
+
+    services = config["services"]
+    accounts_all = config["accounts"]
+    account_by_id = {acc["id"]: acc for acc in accounts_all}
+    service_by_id = {svc["id"]: svc for svc in services}
+
+    accounts = []
+    for account in accounts_all:
+        service = service_by_id.get(account["service_id"], {})
+        category = service.get("category", "general")
+        if category_filter and category != category_filter:
+            continue
+        if status_filter and account["status"] != status_filter:
+            continue
+        accounts.append(
+            {
+                **account,
+                "service_name": service.get("name", account["service_id"]),
+                "category": category,
+            }
+        )
+
+    budgets = []
+    for budget in config["usage_budgets"]:
+        account = account_by_id.get(budget["account_id"], {})
+        budgets.append(
+            {
+                **budget,
+                "account_email": account.get("email", budget["account_id"]),
+            }
+        )
+
+    recommendations = db.list_recommendations()
+
+    return {
+        "summary": summary,
+        "services": services,
+        "accounts": accounts,
+        "budgets": budgets,
+        "recommendations": recommendations,
+        "counts": {
+            "services": len(services),
+            "accounts": len(accounts_all),
+            "budgets": len(config["usage_budgets"]),
+            "recommendations": len(recommendations),
+        },
+    }
 
 
 def register_routes(app: Flask) -> None:
@@ -173,7 +227,7 @@ def register_routes(app: Flask) -> None:
             db.update_service(edit_id, payload)
         else:
             db.create_service(payload)
-        return redirect(url_for("home"))
+        return redirect(url_for("crud"))
 
     @app.route("/accounts/save", methods=["POST"])
     def web_save_account():
@@ -194,7 +248,7 @@ def register_routes(app: Flask) -> None:
             db.update_account(edit_id, payload)
         else:
             db.create_account(payload)
-        return redirect(url_for("home"))
+        return redirect(url_for("crud"))
 
     @app.route("/budgets/save", methods=["POST"])
     def web_save_budget():
@@ -211,7 +265,7 @@ def register_routes(app: Flask) -> None:
             db.update_budget(edit_id, payload)
         else:
             db.create_budget(payload)
-        return redirect(url_for("home"))
+        return redirect(url_for("crud"))
 
     @app.route("/recommendations/save", methods=["POST"])
     def web_save_recommendation():
@@ -231,21 +285,57 @@ def register_routes(app: Flask) -> None:
             db.update_recommendation(edit_id, payload)
         else:
             db.create_recommendation(payload)
+        return redirect(url_for("crud"))
+
+    @app.route("/services/delete/<service_id>", methods=["POST"])
+    def web_delete_service(service_id: str):
+        app.config["DB"].delete_service(service_id)
+        return redirect(url_for("crud"))
+
+    @app.route("/accounts/delete/<account_id>", methods=["POST"])
+    def web_delete_account(account_id: str):
+        app.config["DB"].delete_account(account_id)
+        return redirect(url_for("crud"))
+
+    @app.route("/budgets/delete/<budget_id>", methods=["POST"])
+    def web_delete_budget(budget_id: str):
+        app.config["DB"].delete_budget(budget_id)
+        return redirect(url_for("crud"))
+
+    @app.route("/recommendations/delete/<recommendation_id>", methods=["POST"])
+    def web_delete_recommendation(recommendation_id: str):
+        app.config["DB"].delete_recommendation(recommendation_id)
+        return redirect(url_for("crud"))
+
+    @app.route("/config/import", methods=["POST"])
+    def web_import_config():
+        raw_json = request.form.get("config_json", "").strip()
+        if not raw_json:
+            raise ValidationError("Import JSON cannot be empty.")
+        try:
+            payload = json.loads(raw_json)
+        except json.JSONDecodeError as exc:
+            raise ValidationError(f"Invalid JSON: {exc.msg}") from exc
+        app.config["DB"].replace_config(payload)
         return redirect(url_for("home"))
 
     @app.route("/", methods=["GET"])
     def home():
         db = app.config["DB"]
-        config = db.get_config()
-        summary = db.dashboard_summary()
+        data = _view_data(db)
+        return render_template("home.html", **data)
+
+    @app.route("/crud", methods=["GET"])
+    def crud():
+        db = app.config["DB"]
+        category_filter = request.args.get("category") or None
+        status_filter = request.args.get("status") or None
+        data = _view_data(db, category_filter=category_filter, status_filter=status_filter)
 
         edit_service_id = request.args.get("edit_service_id")
         edit_account_id = request.args.get("edit_account_id")
         edit_budget_id = request.args.get("edit_budget_id")
         edit_recommendation_id = request.args.get("edit_recommendation_id")
-
-        service_by_id = {svc["id"]: svc for svc in config["services"]}
-        account_by_id = {acc["id"]: acc for acc in config["accounts"]}
 
         service_form = db.get_service(edit_service_id) if edit_service_id else None
         account_form = db.get_account(edit_account_id) if edit_account_id else None
@@ -254,27 +344,15 @@ def register_routes(app: Flask) -> None:
             db.get_recommendation(edit_recommendation_id) if edit_recommendation_id else None
         )
 
-        accounts = []
-        for account in config["accounts"]:
-            service = service_by_id.get(account["service_id"], {})
-            accounts.append({**account, "service_name": service.get("name", account["service_id"])})
-
-        budgets = []
-        for budget in config["usage_budgets"]:
-            account = account_by_id.get(budget["account_id"], {})
-            budgets.append({**budget, "account_email": account.get("email", budget["account_id"])})
-
         return render_template(
-            "dashboard.html",
-            summary=summary,
-            services=config["services"],
-            accounts=accounts,
-            budgets=budgets,
-            recommendations=db.list_recommendations(),
+            "crud.html",
+            **data,
             service_form=service_form,
             account_form=account_form,
             budget_form=budget_form,
             recommendation_form=recommendation_form,
             categories=sorted(ALLOWED_CATEGORIES),
             statuses=sorted(ALLOWED_STATUSES),
+            selected_category=category_filter or "",
+            selected_status=status_filter or "",
         )

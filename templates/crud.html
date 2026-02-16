@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero-card">
+  <div>
+    <h1>CRUD Workspace</h1>
+    <p>Create, edit, filter, and delete services, accounts, budgets, and recommendation snippets.</p>
+  </div>
+  <div class="inline-actions">
+    <a class="btn btn-secondary" href="{{ url_for('home') }}">Back to Home</a>
+    <a class="btn btn-primary" href="{{ url_for('get_config') }}">Export JSON</a>
+  </div>
+</section>
+
+<section class="card summary-banner">
+  <strong>Total monthly spend (active): ${{ "%.2f"|format(summary.total_monthly_spend_usd) }}</strong>
+  <div>
+    Coding: ${{ "%.2f"|format(summary.category_breakdown_usd.coding) }} |
+    Art: ${{ "%.2f"|format(summary.category_breakdown_usd.art) }} |
+    Music: ${{ "%.2f"|format(summary.category_breakdown_usd.music) }} |
+    General: ${{ "%.2f"|format(summary.category_breakdown_usd.general) }}
+  </div>
+</section>
+
+<section class="card" id="accounts-filter">
+  <h2>Account Filters</h2>
+  <form method="get" action="{{ url_for('crud') }}" class="form-grid compact-grid">
+    <div>
+      <label>Category</label>
+      <select name="category">
+        <option value="">All</option>
+        {% for category in categories %}
+          <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Status</label>
+      <select name="status">
+        <option value="">All</option>
+        {% for status in statuses %}
+          <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ status }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="button-row">
+      <button type="submit" class="btn btn-primary">Apply Filters</button>
+      <a href="{{ url_for('crud') }}" class="btn btn-secondary">Clear</a>
+    </div>
+  </form>
+</section>
+
+<div class="card-grid">
+  <section class="card" id="services">
+    <h2>Services</h2>
+    <form method="post" action="{{ url_for('web_save_service') }}">
+      <input type="hidden" name="edit_id" value="{{ service_form.id if service_form else '' }}">
+      <div class="form-grid">
+        <div><label>ID</label><input required name="id" value="{{ service_form.id if service_form else '' }}"></div>
+        <div><label>Name</label><input required name="name" value="{{ service_form.name if service_form else '' }}"></div>
+        <div><label>Category</label>
+          <select name="category">
+            {% for category in categories %}
+              <option value="{{ category }}" {% if service_form and service_form.category == category %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div><label>Provider</label><input required name="provider" value="{{ service_form.provider if service_form else '' }}"></div>
+        <div><label>Website URL</label><input required name="website_url" value="{{ service_form.website_url if service_form else '' }}"></div>
+        <div><label>Docs URL</label><input name="docs_url" value="{{ service_form.docs_url if service_form and service_form.docs_url else '' }}"></div>
+        <div><label>Billing URL</label><input name="billing_url" value="{{ service_form.billing_url if service_form and service_form.billing_url else '' }}"></div>
+      </div>
+      <div class="inline-actions">
+        <button type="submit" class="btn btn-primary">{{ "Update Service" if service_form else "Add Service" }}</button>
+        {% if service_form %}<a class="btn btn-secondary" href="{{ url_for('crud') }}#services">Cancel</a>{% endif %}
+      </div>
+    </form>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Provider</th><th>Links</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for service in services %}
+        <tr>
+          <td>{{ service.id }}</td>
+          <td>{{ service.name }}</td>
+          <td><span class="tag">{{ service.category }}</span></td>
+          <td>{{ service.provider }}</td>
+          <td class="link-list">
+            <a href="{{ service.website_url }}">Website</a>
+            {% if service.docs_url %}<a href="{{ service.docs_url }}">Docs</a>{% endif %}
+            {% if service.billing_url %}<a href="{{ service.billing_url }}">Billing</a>{% endif %}
+          </td>
+          <td class="actions-cell">
+            <a class="btn btn-secondary" href="{{ url_for('crud', edit_service_id=service.id) }}#services">Edit</a>
+            <form method="post" action="{{ url_for('web_delete_service', service_id=service.id) }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">No services yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" id="accounts">
+    <h2>Accounts</h2>
+    <form method="post" action="{{ url_for('web_save_account') }}">
+      <input type="hidden" name="edit_id" value="{{ account_form.id if account_form else '' }}">
+      <div class="form-grid">
+        <div><label>ID</label><input required name="id" value="{{ account_form.id if account_form else '' }}"></div>
+        <div><label>Service ID</label><input required name="service_id" value="{{ account_form.service_id if account_form else '' }}"></div>
+        <div><label>Email</label><input required name="email" value="{{ account_form.email if account_form else '' }}"></div>
+        <div><label>Plan</label><input required name="plan_name" value="{{ account_form.plan_name if account_form else '' }}"></div>
+        <div><label>Monthly Cost USD</label><input required name="monthly_cost_usd" value="{{ account_form.monthly_cost_usd if account_form else '' }}"></div>
+        <div><label>Renewal Day (1-31)</label><input name="renewal_day" value="{{ account_form.renewal_day if account_form and account_form.renewal_day is not none else '' }}"></div>
+        <div><label>Status</label>
+          <select name="status">
+            {% for status in statuses %}
+              <option value="{{ status }}" {% if account_form and account_form.status == status %}selected{% endif %}>{{ status }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div><label>Tags (comma-separated)</label><input name="tags" value="{{ account_form.tags|join(', ') if account_form and account_form.tags else '' }}"></div>
+      </div>
+      <label>Notes</label>
+      <textarea name="notes">{{ account_form.notes if account_form and account_form.notes else '' }}</textarea>
+      <div class="inline-actions">
+        <button type="submit" class="btn btn-primary">{{ "Update Account" if account_form else "Add Account" }}</button>
+        {% if account_form %}<a class="btn btn-secondary" href="{{ url_for('crud') }}#accounts">Cancel</a>{% endif %}
+      </div>
+    </form>
+    <table>
+      <thead><tr><th>ID</th><th>Service</th><th>Email</th><th>Plan</th><th>Category</th><th>Cost</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for account in accounts %}
+        <tr>
+          <td>{{ account.id }}</td>
+          <td>{{ account.service_name }}</td>
+          <td>{{ account.email }}</td>
+          <td>{{ account.plan_name }}</td>
+          <td>{{ account.category }}</td>
+          <td>${{ "%.2f"|format(account.monthly_cost_usd) }}</td>
+          <td>{{ account.status }}</td>
+          <td class="actions-cell">
+            <a class="btn btn-secondary" href="{{ url_for('crud', edit_account_id=account.id, category=selected_category, status=selected_status) }}#accounts">Edit</a>
+            <form method="post" action="{{ url_for('web_delete_account', account_id=account.id) }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8">No accounts for this filter.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" id="budgets">
+    <h2>Usage Budgets</h2>
+    <form method="post" action="{{ url_for('web_save_budget') }}">
+      <input type="hidden" name="edit_id" value="{{ budget_form.id if budget_form else '' }}">
+      <div class="form-grid">
+        <div><label>ID</label><input required name="id" value="{{ budget_form.id if budget_form else '' }}"></div>
+        <div><label>Account ID</label><input required name="account_id" value="{{ budget_form.account_id if budget_form else '' }}"></div>
+        <div><label>Monthly Budget USD</label><input required name="monthly_budget_usd" value="{{ budget_form.monthly_budget_usd if budget_form else '' }}"></div>
+        <div><label>Alert Threshold %</label><input required name="alert_threshold_percent" value="{{ budget_form.alert_threshold_percent if budget_form else '' }}"></div>
+        <div><label>Current Month Spend USD</label><input required name="current_month_spend_usd" value="{{ budget_form.current_month_spend_usd if budget_form else '' }}"></div>
+      </div>
+      <div class="inline-actions">
+        <button type="submit" class="btn btn-primary">{{ "Update Budget" if budget_form else "Add Budget" }}</button>
+        {% if budget_form %}<a class="btn btn-secondary" href="{{ url_for('crud') }}#budgets">Cancel</a>{% endif %}
+      </div>
+    </form>
+    <table>
+      <thead><tr><th>ID</th><th>Account</th><th>Budget</th><th>Threshold</th><th>Spend</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for budget in budgets %}
+        <tr>
+          <td>{{ budget.id }}</td>
+          <td>{{ budget.account_email }}</td>
+          <td>${{ "%.2f"|format(budget.monthly_budget_usd) }}</td>
+          <td>{{ "%.2f"|format(budget.alert_threshold_percent) }}%</td>
+          <td>${{ "%.2f"|format(budget.current_month_spend_usd) }}</td>
+          <td class="actions-cell">
+            <a class="btn btn-secondary" href="{{ url_for('crud', edit_budget_id=budget.id, category=selected_category, status=selected_status) }}#budgets">Edit</a>
+            <form method="post" action="{{ url_for('web_delete_budget', budget_id=budget.id) }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">No budgets yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" id="recommendations">
+    <h2>Recommendations</h2>
+    <form method="post" action="{{ url_for('web_save_recommendation') }}">
+      <input type="hidden" name="edit_id" value="{{ recommendation_form.id if recommendation_form else '' }}">
+      <div class="form-grid">
+        <div><label>ID</label><input required name="id" value="{{ recommendation_form.id if recommendation_form else '' }}"></div>
+        <div><label>Account ID (optional)</label><input name="account_id" value="{{ recommendation_form.account_id if recommendation_form and recommendation_form.account_id else '' }}"></div>
+        <div><label>Service ID (optional)</label><input name="service_id" value="{{ recommendation_form.service_id if recommendation_form and recommendation_form.service_id else '' }}"></div>
+        <div><label>Priority (1-5)</label><input required name="priority" value="{{ recommendation_form.priority if recommendation_form else '' }}"></div>
+        <div><label>Title</label><input required name="title" value="{{ recommendation_form.title if recommendation_form else '' }}"></div>
+      </div>
+      <label>Body</label>
+      <textarea required name="body">{{ recommendation_form.body if recommendation_form else '' }}</textarea>
+      <div class="inline-actions">
+        <button type="submit" class="btn btn-primary">{{ "Update Recommendation" if recommendation_form else "Add Recommendation" }}</button>
+        {% if recommendation_form %}<a class="btn btn-secondary" href="{{ url_for('crud') }}#recommendations">Cancel</a>{% endif %}
+      </div>
+    </form>
+    <table>
+      <thead><tr><th>ID</th><th>Title</th><th>Priority</th><th>Target</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for rec in recommendations %}
+        <tr>
+          <td>{{ rec.id }}</td>
+          <td>{{ rec.title }}</td>
+          <td>{{ rec.priority }}</td>
+          <td>{{ rec.account_id if rec.account_id else rec.service_id }}</td>
+          <td class="actions-cell">
+            <a class="btn btn-secondary" href="{{ url_for('crud', edit_recommendation_id=rec.id, category=selected_category, status=selected_status) }}#recommendations">Edit</a>
+            <form method="post" action="{{ url_for('web_delete_recommendation', recommendation_id=rec.id) }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No recommendations yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<section class="card" id="import-json">
+  <h2>Import JSON Config</h2>
+  <p>Paste a full config object to replace current data. Expected keys: <code>services</code>, <code>accounts</code>, <code>usage_budgets</code>, <code>recommendations</code>.</p>
+  <form method="post" action="{{ url_for('web_import_config') }}">
+    <label for="config_json">Config JSON</label>
+    <textarea id="config_json" name="config_json" required placeholder='{"services":[],"accounts":[],"usage_budgets":[],"recommendations":[]}'></textarea>
+    <div class="inline-actions">
+      <button type="submit" class="btn btn-primary">Import and Replace</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

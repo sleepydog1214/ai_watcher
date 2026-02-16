@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 
@@ -115,8 +116,13 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        self.assertIn("AI Watch", html)
+        self.assertIn("SleepyDogDev AI Page", html)
         self.assertIn("builder@example.com", html)
+
+    def test_crud_page_renders(self):
+        response = self.client.get("/crud")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("CRUD Workspace", response.get_data(as_text=True))
 
     def test_budget_and_recommendation_api_flow(self):
         self.client.post("/api/services", json=sample_service())
@@ -204,6 +210,18 @@ class ApiTests(unittest.TestCase):
         payload = get_response.get_json()
         self.assertEqual(payload["email"], "updated@example.com")
         self.assertEqual(payload["status"], "paused")
+
+    def test_import_config_from_web(self):
+        payload = {
+            "services": [sample_service()],
+            "accounts": [sample_account()],
+            "usage_budgets": [sample_budget()],
+            "recommendations": [sample_recommendation()],
+        }
+        response = self.client.post("/config/import", data={"config_json": json.dumps(payload)})
+        self.assertEqual(response.status_code, 302)
+        dashboard = self.client.get("/api/dashboard").get_json()
+        self.assertEqual(dashboard["total_monthly_spend_usd"], 17.0)
 
 
 if __name__ == "__main__":

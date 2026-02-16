@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220" role="img" aria-labelledby="title desc">
+  <title id="title">Golden retriever coding at a laptop</title>
+  <desc id="desc">A friendly golden retriever sitting at a desk with a laptop.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e9f3ff"/>
+      <stop offset="100%" stop-color="#ffeef1"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="224" height="204" rx="26" fill="url(#bg)" stroke="#c7d9ef" stroke-width="6"/>
+  <ellipse cx="120" cy="184" rx="78" ry="14" fill="#dce9f8"/>
+  <rect x="62" y="132" width="120" height="10" rx="4" fill="#5f7b99"/>
+  <rect x="126" y="98" width="74" height="42" rx="7" fill="#476484"/>
+  <rect x="132" y="104" width="62" height="30" rx="4" fill="#d3ecff"/>
+  <path d="M152 121h20M177 121h8M152 114h30" stroke="#4b6891" stroke-linecap="round" stroke-width="3"/>
+  <ellipse cx="100" cy="88" rx="44" ry="38" fill="#e8b35e"/>
+  <ellipse cx="66" cy="80" rx="16" ry="21" fill="#d59c4e"/>
+  <ellipse cx="136" cy="80" rx="16" ry="21" fill="#d59c4e"/>
+  <ellipse cx="100" cy="102" rx="30" ry="24" fill="#f0c37a"/>
+  <circle cx="87" cy="88" r="4.7" fill="#22324a"/>
+  <circle cx="113" cy="88" r="4.7" fill="#22324a"/>
+  <ellipse cx="100" cy="98" rx="7" ry="5" fill="#22324a"/>
+  <path d="M90 108c4 5 16 5 20 0" fill="none" stroke="#22324a" stroke-linecap="round" stroke-width="3"/>
+  <path d="M74 134c10-8 23-13 34-13 10 0 20 3 29 8l-9 23H82z" fill="#e3aa58"/>
+  <rect x="86" y="144" width="22" height="10" rx="4" fill="#f0c37a"/>
+  <rect x="111" y="144" width="22" height="10" rx="4" fill="#f0c37a"/>
+  <circle cx="162" cy="50" r="12" fill="#f8d6dc"/>
+  <path d="M156 50h12M162 44v12" stroke="#b9596e" stroke-linecap="round" stroke-width="3"/>
+</svg>

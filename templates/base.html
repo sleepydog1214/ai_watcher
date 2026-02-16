@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SleepyDogDev AI Page</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+</head>
+<body>
+  <div class="site-shell">
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="{{ url_for('home') }}">
+          <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Golden retriever coding at a laptop logo">
+          <span>SleepyDogDev AI Page</span>
+        </a>
+        <nav class="site-nav" aria-label="Main menu">
+          <a href="{{ url_for('home') }}">Home</a>
+          <a href="{{ url_for('crud') }}">CRUD</a>
+          <a href="{{ url_for('crud') }}#services">Services</a>
+          <a href="{{ url_for('crud') }}#accounts">Accounts</a>
+          <a href="{{ url_for('crud') }}#budgets">Budgets</a>
+          <a href="{{ url_for('crud') }}#recommendations">Recommendations</a>
+          <a href="{{ url_for('get_config') }}">Export JSON</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-wrap">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <p>SleepyDogDev AI Page | Track services, budgets, and recommended workflows in one place.</p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -163,6 +163,18 @@ class FileDatabaseTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             self.db.create_recommendation(payload)
 
+    def test_replace_config(self):
+        payload = {
+            "services": [sample_service()],
+            "accounts": [sample_account()],
+            "usage_budgets": [sample_budget()],
+            "recommendations": [sample_recommendation()],
+        }
+        self.db.replace_config(payload)
+        summary = self.db.dashboard_summary()
+        self.assertEqual(summary["total_monthly_spend_usd"], 20.0)
+        self.assertEqual(len(self.db.list_recommendations()), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

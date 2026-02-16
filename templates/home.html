@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero-card">
+  <div>
+    <h1>Overview Dashboard</h1>
+    <p>Single-pane summary of all AI subscriptions, account status, budgets, and recommendations.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('crud') }}">Open CRUD Workspace</a>
+</section>
+
+<section class="card-grid summary-grid">
+  <article class="card stat-card">
+    <h2>Total Monthly Spend</h2>
+    <p class="value">${{ "%.2f"|format(summary.total_monthly_spend_usd) }}</p>
+    <small>Active accounts only</small>
+  </article>
+  <article class="card stat-card">
+    <h2>Services</h2>
+    <p class="value">{{ counts.services }}</p>
+    <small>Total services tracked</small>
+  </article>
+  <article class="card stat-card">
+    <h2>Accounts</h2>
+    <p class="value">{{ counts.accounts }}</p>
+    <small>All account records</small>
+  </article>
+  <article class="card stat-card">
+    <h2>Recommendations</h2>
+    <p class="value">{{ counts.recommendations }}</p>
+    <small>Saved workflow notes</small>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Spend Breakdown</h2>
+  <div class="breakdown">
+    <div>Coding: <strong>${{ "%.2f"|format(summary.category_breakdown_usd.coding) }}</strong></div>
+    <div>Art: <strong>${{ "%.2f"|format(summary.category_breakdown_usd.art) }}</strong></div>
+    <div>Music: <strong>${{ "%.2f"|format(summary.category_breakdown_usd.music) }}</strong></div>
+    <div>General: <strong>${{ "%.2f"|format(summary.category_breakdown_usd.general) }}</strong></div>
+  </div>
+  {% if summary.budget_alerts %}
+    <p class="alert-text">
+      Budget alerts:
+      {% for alert in summary.budget_alerts %}
+        [{{ alert.email }} at {{ "%.2f"|format(alert.percent_used) }}%]
+      {% endfor %}
+    </p>
+  {% endif %}
+</section>
+
+<section class="card-grid">
+  <article class="card">
+    <h2>Services</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Category</th><th>Provider</th></tr></thead>
+      <tbody>
+      {% for service in services %}
+        <tr><td>{{ service.name }}</td><td>{{ service.category }}</td><td>{{ service.provider }}</td></tr>
+      {% else %}
+        <tr><td colspan="3">No services yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="card">
+    <h2>Accounts</h2>
+    <table>
+      <thead><tr><th>Email</th><th>Service</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for account in accounts %}
+        <tr><td>{{ account.email }}</td><td>{{ account.service_name }}</td><td>{{ account.status }}</td></tr>
+      {% else %}
+        <tr><td colspan="3">No accounts yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+</section>
+
+<section class="card-grid">
+  <article class="card">
+    <h2>Usage Budgets</h2>
+    <table>
+      <thead><tr><th>Account</th><th>Budget</th><th>Spend</th></tr></thead>
+      <tbody>
+      {% for budget in budgets %}
+        <tr>
+          <td>{{ budget.account_email }}</td>
+          <td>${{ "%.2f"|format(budget.monthly_budget_usd) }}</td>
+          <td>${{ "%.2f"|format(budget.current_month_spend_usd) }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3">No budgets yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="card">
+    <h2>Recommendations</h2>
+    <table>
+      <thead><tr><th>Title</th><th>Priority</th><th>Target</th></tr></thead>
+      <tbody>
+      {% for rec in recommendations %}
+        <tr>
+          <td>{{ rec.title }}</td>
+          <td>{{ rec.priority }}</td>
+          <td>{{ rec.account_id if rec.account_id else rec.service_id }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3">No recommendations yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+</section>
+{% endblock %}

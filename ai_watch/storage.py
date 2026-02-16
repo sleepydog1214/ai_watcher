@@ -54,6 +54,78 @@ class FileDatabase:
     def get_config(self) -> dict:
         return self._read()
 
+    def replace_config(self, payload: dict) -> dict:
+        if not isinstance(payload, dict):
+            raise ValidationError("Config payload must be a JSON object.")
+
+        services = payload.get("services", [])
+        accounts = payload.get("accounts", [])
+        usage_budgets = payload.get("usage_budgets", [])
+        recommendations = payload.get("recommendations", [])
+
+        for field_name, value in (
+            ("services", services),
+            ("accounts", accounts),
+            ("usage_budgets", usage_budgets),
+            ("recommendations", recommendations),
+        ):
+            if not isinstance(value, list):
+                raise ValidationError(f"Field '{field_name}' must be a list.")
+
+        service_ids: set[str] = set()
+        validated_services: list[dict] = []
+        for service in services:
+            validate_service_payload(service)
+            service_id = service["id"]
+            if service_id in service_ids:
+                raise ValidationError(f"Duplicate service ID '{service_id}'.")
+            service_ids.add(service_id)
+            validated_services.append(dict(service))
+
+        account_ids: set[str] = set()
+        validated_accounts: list[dict] = []
+        for account in accounts:
+            validate_account_payload(account, validated_services)
+            account_id = account["id"]
+            if account_id in account_ids:
+                raise ValidationError(f"Duplicate account ID '{account_id}'.")
+            account_ids.add(account_id)
+            validated_accounts.append(dict(account))
+
+        budget_ids: set[str] = set()
+        budget_account_ids: set[str] = set()
+        validated_budgets: list[dict] = []
+        for budget in usage_budgets:
+            validate_budget_payload(budget, validated_accounts)
+            budget_id = budget["id"]
+            account_id = budget["account_id"]
+            if budget_id in budget_ids:
+                raise ValidationError(f"Duplicate budget ID '{budget_id}'.")
+            if account_id in budget_account_ids:
+                raise ValidationError(f"Account '{account_id}' already has a budget.")
+            budget_ids.add(budget_id)
+            budget_account_ids.add(account_id)
+            validated_budgets.append(dict(budget))
+
+        recommendation_ids: set[str] = set()
+        validated_recommendations: list[dict] = []
+        for recommendation in recommendations:
+            validate_recommendation_payload(recommendation, validated_accounts, validated_services)
+            recommendation_id = recommendation["id"]
+            if recommendation_id in recommendation_ids:
+                raise ValidationError(f"Duplicate recommendation ID '{recommendation_id}'.")
+            recommendation_ids.add(recommendation_id)
+            validated_recommendations.append(dict(recommendation))
+
+        data = {
+            "services": validated_services,
+            "accounts": validated_accounts,
+            "usage_budgets": validated_budgets,
+            "recommendations": validated_recommendations,
+        }
+        self._write(data)
+        return data
+
     def list_services(self, category: str | None = None) -> list[dict]:
         services = self._read()["services"]
         if category:
